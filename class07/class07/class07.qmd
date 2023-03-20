@@ -1,0 +1,217 @@
+---
+title: "Class 7: Machine Learning 1"
+author: "Kianna"
+format: pdf
+---
+
+In this class we will explore clustering and dimensionality reduction methods. 
+
+
+## K-means
+
+Make up some input data where we know what the answer should be
+
+```{r}
+tmp <- c( rnorm(30, -3), rnorm(30, +3) )
+x <- cbind(x=tmp, y=rev(tmp))
+head(x)
+```
+
+Quick plot of x to see the two groups at -3, +3, and +3, -3
+```{r}
+plot(x)
+```
+
+Use the 'kmeans()' function setting k to 2 and nstart = 20
+
+```{r}
+km <- kmeans(x, centers = 2, nstart=20)
+km
+```
+
+>Q. How many points are in each cluster?
+
+```{r}
+km$size
+```
+
+>Q. What 'component' of your result object details
+  -cluster assignment/membership?
+  -cluster center?
+  
+```{r}
+km$cluster
+km$centers
+```
+  >Q. Plot x colored by the kmeans cluster assignment and add cluster centers as blue points.
+  
+```{r}
+plot(x, col = km$cluster)
+points(km$centers, col="blue", pch=15, cex=2)
+
+```
+Play with kmeans and ask for different number of clusters
+```{r}
+km <- kmeans(x, centers = 4, nstart=20)
+km
+plot(x, col = km$cluster)
+points(km$centers, col="blue", pch=16, cex=2)
+```
+
+
+```{r}
+1:6 + c(100, 1)
+```
+  
+```{r}
+c(100,1)
+```
+
+  
+# Hierarchical Clustering
+This is another very useful and widely employed clustering method which has the advantage over k-means in that it can help reveal the something of the true grouping in your data.
+
+The 'hclust()' function wants a distance matrix as input. We can get this from the 'dist()' function.
+
+```{r}
+d <- dist(x)
+hc <- hclust(d)
+hc
+```
+  There is a plot method for hclust results:
+  
+```{r}
+plot(hc)
+abline(h=10, col="red")
+```
+  
+To get my cluster membership vector, I need to "cut" my tree to yield sub-trees of branches with all the members of a given cluster residing on the same cut branch. The function to do this is called 'cutree()'
+
+
+```{r}
+grps <- cutree(hc, h=10)
+grps
+```
+```{r}
+plot(x, col=grps)
+```
+```{r}
+plot(hc)
+```
+
+It is often helpful to use the 'k=' argument to cutree rather than the 'h=' height of cutting with 'cutree()'. This will cut the tree to yield the number of clusters you want. 'k=4' would give use a cut that yields 4 clusters.
+```{r}
+cutree(hc, k=4)
+```
+# Principal Component Analysis (PCA)
+
+The base R function for PCA is called 'prcomp()'
+
+
+```{r}
+url <- "https://tinyurl.com/UK-foods"
+x <- read.csv(url)
+```
+
+```{r}
+nrow(x)
+ncol(x)
+dim(x)
+```
+
+Q1. There are 17 rows and 5 columns in data frame x.
+```{r}
+head(x)
+```
+
+```{r}
+# Note how the minus indexing works
+rownames(x) <- x[,1]
+x <- x[,-1]
+head(x)
+```
+
+
+```{r}
+nrow(x)
+ncol(x)
+dim(x)
+```
+
+```{r}
+x <- read.csv(url, row.names=1)
+head(x)
+```
+Q2. I prefer the second approach because it is more simple than the first approach as there is one less line of code. It requires defining one less variable which I like better. The second approach is more robust than the first because every time it reruns, it will only affect the first column and treat it as the row names. With the first approach, each time you play it the first column will get deleted over and over.
+
+```{r}
+barplot(as.matrix(x), beside=T, col=rainbow(nrow(x)))
+```
+Q3. By changing beside=T to beside=F, the bars within each country will be on top of each other instead of next to ecah other.
+```{r}
+barplot(as.matrix(x), beside=F, col=rainbow(nrow(x)))
+```
+
+Q5. The 'pairs()' function gives a matrix of scatter plots comparing variables to each other within the data frame. If a given point lies on the diagonal for a given plot, that means the two countries are similar to each other in regard to their eating habits for that food group.
+```{r}
+pairs(x, col=rainbow(10), pch=16) 
+```
+
+Q6. The main differences between N. Ireland and the other countries are in terms of the food group that is the dark blue and orange dots. The blue dot is above the diagonal with N. Ireland on the y-axis meaning Irish people eat more of that food group. The orange dot is below the diagonal with N. Ireland on the y-axis meaning Irish people eat less of that food group.
+
+```{r}
+# Use the prcomp() PCA function 
+pca <- prcomp( t(x) )
+summary(pca)
+```
+
+A "PCA plot" (a.k.a "Score plot", PC1vsPC2 plot, etc.)
+
+```{r}
+pca$x
+```
+```{r}
+plot(pca$x[,1], pca$x[,2], 
+    col=c("orange", "red", "blue", "darkgreen"), pch=15)
+```
+
+Q7. 
+```{r}
+# Plot PC1 vs PC2
+plot(pca$x[,1], pca$x[,2], xlab="PC1", ylab="PC2", xlim=c(-270,500))
+text(pca$x[,1], pca$x[,2], colnames(x))
+```
+
+Q8. 
+```{r}
+# Plot PC1 vs PC2
+plot(pca$x[,1], pca$x[,2], xlab="PC1", ylab="PC2", xlim=c(-270,500))
+text(pca$x[,1], pca$x[,2], colnames(x), col=c("orange", "red", "blue", "darkgreen"))
+```
+```{r}
+v <- round( pca$sdev^2/sum(pca$sdev^2) * 100 )
+v
+```
+```{r}
+## or the second row here...
+z <- summary(pca)
+z$importance
+```
+
+```{r}
+barplot(v, xlab="Principal Component", ylab="Percent Variation")
+```
+```{r}
+## Lets focus on PC1 as it accounts for > 90% of variance 
+par(mar=c(10, 3, 0.35, 0))
+barplot( pca$rotation[,1], las=2 )
+```
+
+Q9. 
+```{r}
+## Lets focus on PC1 as it accounts for > 90% of variance 
+par(mar=c(10, 3, 0.35, 0))
+barplot( pca$rotation[,2], las=2 )
+```
+
+The food with the largest positive value is fresh potatoes which pushes N. Ireland to the right side of the plot. N. Ireland consumes more of this than other countries. The food with the largest negative value is soft drinks which pushes the other countries to the left side of the plot. N. Ireland consumes less of this than other countries.
